@@ -1,1 +1,679 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SabbFlow — Atopleniya Kalkulyatori</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --tg-bg: var(--tg-theme-bg-color, #ffffff);
+    --tg-text: var(--tg-theme-text-color, #1a1a1a);
+    --tg-hint: var(--tg-theme-hint-color, #888888);
+    --tg-link: var(--tg-theme-link-color, #0088cc);
+    --tg-btn: var(--tg-theme-button-color, #0e7d5e);
+    --tg-btn-text: var(--tg-theme-button-text-color, #ffffff);
+    --tg-secondary-bg: var(--tg-theme-secondary-bg-color, #f4f4f4);
+    --accent: #0e7d5e;
+    --accent-light: #e8f5f0;
+    --accent-dark: #0a5c44;
+    --warn: #f59e0b;
+    --warn-light: #fffbeb;
+    --border: rgba(0,0,0,0.08);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
 
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--tg-bg);
+    color: var(--tg-text);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.5;
+    overscroll-behavior: none;
+  }
+
+  .app { max-width: 480px; margin: 0 auto; padding: 0 16px 32px; }
+
+  /* HEADER */
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 0 6px;
+    border-bottom: 0.5px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .logo {
+    width: 44px; height: 44px;
+    background: var(--accent);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .logo-text h1 { font-size: 18px; font-weight: 700; color: var(--tg-text); letter-spacing: -0.3px; }
+  .logo-text p { font-size: 12px; color: var(--tg-hint); }
+
+  /* PROGRESS */
+  .progress-wrap { margin-bottom: 20px; }
+  .progress-track {
+    display: flex; gap: 4px; margin-bottom: 6px;
+  }
+  .progress-seg {
+    flex: 1; height: 3px; border-radius: 2px;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+  .progress-seg.done { background: var(--accent); }
+  .progress-seg.active { background: var(--accent); opacity: 0.45; }
+  .progress-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--tg-hint); }
+
+  /* STEPS */
+  .step { display: none; }
+  .step.active { display: block; }
+  .step-title { font-size: 17px; font-weight: 600; margin-bottom: 4px; color: var(--tg-text); }
+  .step-sub { font-size: 13px; color: var(--tg-hint); margin-bottom: 18px; }
+
+  /* OPTION GRID */
+  .opt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+  .opt-grid.cols3 { grid-template-columns: repeat(3, 1fr); }
+  .opt-grid.cols4 { grid-template-columns: repeat(4, 1fr); }
+
+  .opt-btn {
+    background: var(--tg-secondary-bg);
+    border: 1.5px solid transparent;
+    border-radius: var(--radius);
+    padding: 12px 10px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+    -webkit-user-select: none;
+  }
+  .opt-btn:active { transform: scale(0.97); }
+  .opt-btn.selected {
+    background: var(--accent-light);
+    border-color: var(--accent);
+  }
+  .opt-icon { font-size: 22px; display: block; margin-bottom: 6px; }
+  .opt-label { font-size: 13px; font-weight: 600; color: var(--tg-text); display: block; }
+  .opt-desc { font-size: 11px; color: var(--tg-hint); margin-top: 2px; display: block; }
+  .opt-btn.selected .opt-label { color: var(--accent-dark); }
+  .opt-btn.selected .opt-desc { color: var(--accent); }
+
+  .opt-grid.cols4 .opt-btn { text-align: center; padding: 10px 6px; }
+  .opt-grid.cols4 .opt-label { font-size: 14px; }
+
+  /* FIELD */
+  .field { margin-bottom: 14px; }
+  .field-label { font-size: 13px; font-weight: 500; color: var(--tg-hint); margin-bottom: 8px; display: block; }
+
+  /* ROOMS */
+  .rooms-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+  .room-card {
+    background: var(--tg-secondary-bg);
+    border-radius: var(--radius);
+    padding: 12px;
+    border: 1px solid var(--border);
+  }
+  .room-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
+  }
+  .room-name-input {
+    font-size: 13px; font-weight: 600;
+    border: none; background: transparent;
+    color: var(--tg-text); outline: none; width: 150px;
+  }
+  .room-remove {
+    font-size: 20px; cursor: pointer; color: var(--tg-hint);
+    background: none; border: none; padding: 0; line-height: 1;
+  }
+  .room-inputs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .room-input-wrap label { font-size: 11px; color: var(--tg-hint); display: block; margin-bottom: 4px; text-align: center; }
+  .room-input-wrap input {
+    width: 100%; height: 36px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--tg-bg);
+    font-size: 14px; text-align: center;
+    color: var(--tg-text); outline: none;
+  }
+  .room-input-wrap input:focus { border-color: var(--accent); }
+
+  .add-room-btn {
+    width: 100%; padding: 11px;
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--tg-hint);
+    font-size: 13px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+
+  /* NAV */
+  .nav-row { display: flex; gap: 8px; margin-top: 20px; }
+  .btn-back {
+    height: 48px; padding: 0 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--tg-hint); font-size: 15px; cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .btn-next {
+    flex: 1; height: 48px;
+    border: none; border-radius: var(--radius);
+    background: var(--accent);
+    color: #fff; font-size: 15px; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+    transition: background 0.15s;
+  }
+  .btn-next:active { background: var(--accent-dark); }
+
+  /* RESULT */
+  .result-hero {
+    text-align: center;
+    padding: 24px 0 20px;
+  }
+  .result-badge {
+    width: 64px; height: 64px;
+    background: var(--accent-light);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px; margin: 0 auto 12px;
+  }
+  .result-hero h2 { font-size: 20px; font-weight: 700; }
+  .result-hero p { font-size: 13px; color: var(--tg-hint); margin-top: 4px; }
+
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .stat-card {
+    background: var(--tg-secondary-bg);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+  }
+  .stat-card .s-label { font-size: 11px; color: var(--tg-hint); margin-bottom: 4px; }
+  .stat-card .s-val { font-size: 22px; font-weight: 700; color: var(--tg-text); line-height: 1.1; }
+  .stat-card .s-unit { font-size: 12px; font-weight: 400; color: var(--tg-hint); }
+  .stat-card .s-note { font-size: 11px; color: var(--tg-hint); margin-top: 3px; }
+
+  .section-card {
+    background: var(--tg-secondary-bg);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+  .section-card h3 {
+    font-size: 12px; font-weight: 600;
+    color: var(--tg-hint); text-transform: uppercase;
+    letter-spacing: 0.5px; margin-bottom: 10px;
+  }
+  .r-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 7px 0;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .r-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .r-key { font-size: 13px; color: var(--tg-hint); }
+  .r-val { font-size: 13px; font-weight: 600; color: var(--tg-text); }
+
+  .price-banner {
+    background: var(--accent);
+    border-radius: var(--radius);
+    padding: 18px;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .price-banner .p-label { font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 4px; }
+  .price-banner .p-val { font-size: 28px; font-weight: 700; color: #fff; }
+  .price-banner .p-note { font-size: 11px; color: rgba(255,255,255,0.65); margin-top: 4px; }
+
+  .warn-box {
+    background: var(--warn-light);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-size: 12px;
+    color: #92400e;
+    display: flex; gap: 8px; align-items: flex-start;
+    margin-bottom: 12px;
+  }
+
+  .btn-share {
+    width: 100%; height: 48px;
+    border: none; border-radius: var(--radius);
+    background: var(--accent);
+    color: #fff; font-size: 15px; font-weight: 600;
+    cursor: pointer; margin-bottom: 8px;
+  }
+  .btn-restart {
+    width: 100%; height: 44px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--tg-hint); font-size: 14px; cursor: pointer;
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: #1a1a1a; color: #fff;
+    padding: 10px 20px; border-radius: 24px;
+    font-size: 13px; opacity: 0;
+    transition: opacity 0.3s; pointer-events: none; white-space: nowrap;
+    z-index: 999;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="logo">🔧</div>
+    <div class="logo-text">
+      <h1>SabbFlow</h1>
+      <p>Atopleniya kalkulyatori</p>
+    </div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-track">
+      <div class="progress-seg active" id="ps1"></div>
+      <div class="progress-seg" id="ps2"></div>
+      <div class="progress-seg" id="ps3"></div>
+      <div class="progress-seg" id="ps4"></div>
+      <div class="progress-seg" id="ps5"></div>
+    </div>
+    <div class="progress-meta">
+      <span id="step-label">1-qadam: Mintaqa</span>
+      <span id="step-count">1 / 5</span>
+    </div>
+  </div>
+
+  <!-- STEP 1: Mintaqa -->
+  <div id="step1" class="step active">
+    <div class="step-title">Qaysi mintaqadasiz?</div>
+    <div class="step-sub">Eng sovuq qishni ko'rsating — hisoblashda asosiy omil</div>
+    <div class="opt-grid">
+      <button class="opt-btn" onclick="pick(this,'region','toshkent')">
+        <span class="opt-icon">🌤</span>
+        <span class="opt-label">Toshkent</span>
+        <span class="opt-desc">−10°C gacha</span>
+      </button>
+      <button class="opt-btn" onclick="pick(this,'region','samarqand')">
+        <span class="opt-icon">🏜</span>
+        <span class="opt-label">Samarqand / Buxoro</span>
+        <span class="opt-desc">−12°C gacha</span>
+      </button>
+      <button class="opt-btn" onclick="pick(this,'region','fargona')">
+        <span class="opt-icon">⛰</span>
+        <span class="opt-label">Farg'ona vodiysi</span>
+        <span class="opt-desc">−15°C gacha</span>
+      </button>
+      <button class="opt-btn" onclick="pick(this,'region','qashqa')">
+        <span class="opt-icon">☀️</span>
+        <span class="opt-label">Qashqadaryo / Surxon</span>
+        <span class="opt-desc">−8°C gacha</span>
+      </button>
+      <button class="opt-btn" onclick="pick(this,'region','navoiy')">
+        <span class="opt-icon">🏔</span>
+        <span class="opt-label">Navoiy / Jizzax</span>
+        <span class="opt-desc">−13°C gacha</span>
+      </button>
+      <button class="opt-btn" onclick="pick(this,'region','xorazm')">
+        <span class="opt-icon">❄️</span>
+        <span class="opt-label">Xorazm / Qoraqalpog'</span>
+        <span class="opt-desc">−20°C gacha</span>
+      </button>
+    </div>
+    <div class="nav-row">
+      <button class="btn-next" onclick="go(1,2)">Davom etish →</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: Devor -->
+  <div id="step2" class="step">
+    <div class="step-title">Devor qanday material?</div>
+    <div class="step-sub">Devor qalinligi issiqlik yo'qotilishini belgilaydi</div>
+    <div class="opt-grid">
+      <button class="opt-btn" onclick="pick(this,'wall','brick_thick')">
+        <span class="opt-icon">🧱</span>
+        <span class="opt-label">G'isht (qalin)</span>
+        <span class="opt-desc">2.5+ g'isht, 50+ sm</span>
+      </button>
+      <button class="opt-btn" onclick="pick(this,'wall','brick_thin')">
+        <span class="opt-icon">🏗</span>
+        <span class="opt-label">G'isht (yupqa)</span>
+        <span class="opt-desc">1.5–2 g'isht, 30–50 sm</span>
+      </button>
+      <button class="opt-btn" onclick="pick(this,'wall','panel')">
+        <span class="opt-icon">🏢</span>
+        <span class="opt-label">Panel (sovet)</span>
+        <span class="opt-desc">Prefabrik panelar</span>
+      </button>
+      <button class="opt-btn" onclick="pick(this,'wall','gas_block')">
+        <span class="opt-icon">🟫</span>
+        <span class="opt-label">Gaz blok / Penobeton</span>
+        <span class="opt-desc">Zamonaviy qurilish</span>
+      </button>
+      <button class="opt-btn" onclick="pick(this,'wall','insulated')">
+        <span class="opt-icon">🧊</span>
+        <span class="opt-label">Izolyatsiyali</span>
+        <span class="opt-desc">Minvata / Penoplex</span>
+      </button>
+      <button class="opt-btn" onclick="pick(this,'wall','wood')">
+        <span class="opt-icon">🌲</span>
+        <span class="opt-label">Yog'och / Samonit</span>
+        <span class="opt-desc">Qishloq uylari</span>
+      </button>
+    </div>
+    <div class="nav-row">
+      <button class="btn-back" onclick="go(2,1)">← Orqaga</button>
+      <button class="btn-next" onclick="go(2,3)">Davom etish →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: Qavatlar + Deraza -->
+  <div id="step3" class="step">
+    <div class="step-title">Bino va deraza</div>
+    <div class="step-sub">Issiqlik yo'qotilishining yana ikkita omili</div>
+
+    <div class="field">
+      <span class="field-label">Binoning umumiy qavatlar soni</span>
+      <div class="opt-grid cols4">
+        <button class="opt-btn" onclick="pick(this,'floors','1')"><span class="opt-label">1</span></button>
+        <button class="opt-btn" onclick="pick(this,'floors','2')"><span class="opt-label">2</span></button>
+        <button class="opt-btn" onclick="pick(this,'floors','3')"><span class="opt-label">3</span></button>
+        <button class="opt-btn" onclick="pick(this,'floors','4plus')"><span class="opt-label">4+</span></button>
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="field-label">Deraza turi</span>
+      <div class="opt-grid">
+        <button class="opt-btn" onclick="pick(this,'window','old')">
+          <span class="opt-icon">🪟</span>
+          <span class="opt-label">Eski oyna</span>
+          <span class="opt-desc">Yog'och rama</span>
+        </button>
+        <button class="opt-btn" onclick="pick(this,'window','double')">
+          <span class="opt-icon">🔲</span>
+          <span class="opt-label">Ikki kamerali</span>
+          <span class="opt-desc">Standart plastik</span>
+        </button>
+        <button class="opt-btn" onclick="pick(this,'window','triple')">
+          <span class="opt-icon">✨</span>
+          <span class="opt-label">Uch kamerali</span>
+          <span class="opt-desc">Energiya tejovchi</span>
+        </button>
+        <button class="opt-btn" onclick="pick(this,'window','mixed')">
+          <span class="opt-icon">🔀</span>
+          <span class="opt-label">Aralash</span>
+          <span class="opt-desc">Turli xil</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="nav-row">
+      <button class="btn-back" onclick="go(3,2)">← Orqaga</button>
+      <button class="btn-next" onclick="go(3,4)">Davom etish →</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: Xonalar -->
+  <div id="step4" class="step">
+    <div class="step-title">Xonalar o'lchamlari</div>
+    <div class="step-sub">Har bir xona uchun uzunlik, eni va balandlikni metrlarda kiriting</div>
+    <div class="rooms-list" id="rooms-list"></div>
+    <button class="add-room-btn" onclick="addRoom()">+ Xona qo'shish</button>
+    <div class="nav-row" style="margin-top:14px">
+      <button class="btn-back" onclick="go(4,3)">← Orqaga</button>
+      <button class="btn-next" onclick="go(4,5)">🧮 Hisoblash</button>
+    </div>
+  </div>
+
+  <!-- STEP 5: Natija -->
+  <div id="step5" class="step">
+    <div id="result-out"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const tg = window.Telegram?.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+
+const S = { region:'', wall:'', floors:'', window:'', rooms:[] };
+let rid = 0;
+
+const RC = { toshkent:1.0, samarqand:1.1, fargona:1.2, qashqa:0.9, navoiy:1.15, xorazm:1.35 };
+const WC = { brick_thick:0.85, brick_thin:1.0, panel:1.1, gas_block:0.9, insulated:0.75, wood:1.05 };
+const FC = { '1':1.15, '2':1.0, '3':0.95, '4plus':0.9 };
+const WNC = { old:1.2, double:1.0, triple:0.88, mixed:1.1 };
+
+const RN = { toshkent:'Toshkent', samarqand:'Samarqand/Buxoro', fargona:"Farg'ona vodiysi", qashqa:'Qashqadaryo/Surxon', navoiy:'Navoiy/Jizzax', xorazm:"Xorazm/Qoraqalpog'" };
+const WN = { brick_thick:"G'isht qalin", brick_thin:"G'isht yupqa", panel:'Panel sovet', gas_block:'Gaz blok', insulated:'Izolyatsiyali', wood:"Yog'och" };
+const WNN = { old:'Eski oyna', double:'Ikki kamerali', triple:'Uch kamerali', mixed:'Aralash' };
+
+const STEPS = ['Mintaqa','Devor','Bino va deraza','Xonalar','Natija'];
+
+function pick(btn, key, val) {
+  S[key] = val;
+  btn.closest('.opt-grid').querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+}
+
+function go(from, to) {
+  if (!validate(from)) return;
+  if (from === 3 && to === 4 && S.rooms.length === 0) {
+    addRoom('Yotoqxona'); addRoom('Mehmonxona'); addRoom('Oshxona');
+  }
+  if (to === 5) { calcResult(); }
+  document.getElementById('step'+from).classList.remove('active');
+  document.getElementById('step'+to).classList.add('active');
+  updateProg(to);
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function validate(step) {
+  if (step===1 && !S.region) { toast('Mintaqani tanlang'); return false; }
+  if (step===2 && !S.wall) { toast('Devor materialini tanlang'); return false; }
+  if (step===3) {
+    if (!S.floors) { toast('Qavatlar sonini tanlang'); return false; }
+    if (!S.window) { toast('Deraza turini tanlang'); return false; }
+  }
+  if (step===4) {
+    if (S.rooms.length===0) { toast('Kamida 1 ta xona kiriting'); return false; }
+    for (const r of S.rooms) {
+      if (!r.l||!r.w||r.l<=0||r.w<=0) { toast(`"${r.name}" xonasini to'ldiring`); return false; }
+    }
+  }
+  return true;
+}
+
+function updateProg(step) {
+  for(let i=1;i<=5;i++){
+    const el=document.getElementById('ps'+i);
+    el.classList.remove('done','active');
+    if(i<step) el.classList.add('done');
+    else if(i===step) el.classList.add('active');
+  }
+  document.getElementById('step-label').textContent = step+'-qadam: '+STEPS[step-1];
+  document.getElementById('step-count').textContent = step+' / 5';
+}
+
+function addRoom(name) {
+  rid++;
+  const id = rid;
+  S.rooms.push({ id, name: name||('Xona '+id), l:'', w:'', h:2.7 });
+  renderRooms();
+}
+
+function removeRoom(id) {
+  S.rooms = S.rooms.filter(r=>r.id!==id);
+  renderRooms();
+}
+
+function upd(id, key, v) {
+  const r=S.rooms.find(r=>r.id===id);
+  if(r) r[key] = key==='name'?v:(parseFloat(v)||0);
+}
+
+function renderRooms() {
+  document.getElementById('rooms-list').innerHTML = S.rooms.map(r=>`
+    <div class="room-card">
+      <div class="room-header">
+        <input class="room-name-input" type="text" value="${r.name}" onchange="upd(${r.id},'name',this.value)">
+        <button class="room-remove" onclick="removeRoom(${r.id})">✕</button>
+      </div>
+      <div class="room-inputs">
+        <div class="room-input-wrap">
+          <label>Uzunlik (m)</label>
+          <input type="number" step="0.1" min="1" max="50" placeholder="5.0" value="${r.l||''}" oninput="upd(${r.id},'l',this.value)">
+        </div>
+        <div class="room-input-wrap">
+          <label>Eni (m)</label>
+          <input type="number" step="0.1" min="1" max="50" placeholder="4.0" value="${r.w||''}" oninput="upd(${r.id},'w',this.value)">
+        </div>
+        <div class="room-input-wrap">
+          <label>Balandlik (m)</label>
+          <input type="number" step="0.1" min="2" max="5" placeholder="2.7" value="${r.h||2.7}" oninput="upd(${r.id},'h',this.value)">
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function calcResult() {
+  const rc=RC[S.region]||1, wc=WC[S.wall]||1, fc=FC[S.floors]||1, wnc=WNC[S.window]||1;
+  let totalArea=0;
+
+  const rooms = S.rooms.map(r=>{
+    const area = r.l*r.w;
+    const kw = area*0.1*rc*wc*fc*wnc;
+    const secs = Math.ceil(kw*1000/170);
+    totalArea += area;
+    return {...r, area, kw, secs};
+  });
+
+  const totalKw = rooms.reduce((s,r)=>s+r.kw,0);
+  const boilerKw = Math.ceil(totalKw*1.2);
+  const totalSecs = rooms.reduce((s,r)=>s+r.secs,0);
+
+  const priceBoiler = boilerKw<=12?1200000:boilerKw<=24?2500000:boilerKw<=36?3800000:5500000;
+  const pricePipe = Math.round(totalArea*8000/5000)*5000;
+  const priceRad = totalSecs*65000;
+  const priceWork = Math.round(totalArea*25000/5000)*5000;
+  const totalPrice = priceBoiler+pricePipe+priceRad+priceWork;
+
+  const f = n=>Math.round(n).toLocaleString('uz-UZ');
+
+  document.getElementById('result-out').innerHTML = `
+    <div class="result-hero">
+      <div class="result-badge">✅</div>
+      <h2>Hisob-kitob tayyor!</h2>
+      <p>${f(totalArea)} m² · ${S.rooms.length} ta xona · ${RN[S.region]}</p>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="s-label">Isitish kuchi</div>
+        <div class="s-val">${totalKw.toFixed(1)} <span class="s-unit">kVt</span></div>
+        <div class="s-note">Jami uy uchun</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">Qozon quvvati</div>
+        <div class="s-val">${boilerKw} <span class="s-unit">kVt</span></div>
+        <div class="s-note">20% zaxira bilan</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">Batareya seksiya</div>
+        <div class="s-val">${totalSecs} <span class="s-unit">dona</span></div>
+        <div class="s-note">Jami barcha xona</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">Umumiy maydon</div>
+        <div class="s-val">${f(totalArea)} <span class="s-unit">m²</span></div>
+        <div class="s-note">${S.rooms.length} ta xona</div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <h3>Xona bo'yicha taqsimot</h3>
+      ${rooms.map(r=>`
+        <div class="r-row">
+          <span class="r-key">${r.name} (${r.area.toFixed(0)} m²)</span>
+          <span class="r-val">${r.kw.toFixed(1)} kVt · ${r.secs} seks.</span>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="section-card">
+      <h3>Tanlangan parametrlar</h3>
+      <div class="r-row"><span class="r-key">Mintaqa</span><span class="r-val">${RN[S.region]}</span></div>
+      <div class="r-row"><span class="r-key">Devor</span><span class="r-val">${WN[S.wall]}</span></div>
+      <div class="r-row"><span class="r-key">Qavatlar</span><span class="r-val">${S.floors==='4plus'?'4 va undan ortiq':S.floors+' qavat'}</span></div>
+      <div class="r-row"><span class="r-key">Deraza</span><span class="r-val">${WNN[S.window]}</span></div>
+    </div>
+
+    <div class="price-banner">
+      <div class="p-label">Taxminiy umumiy xarajat</div>
+      <div class="p-val">${f(totalPrice)} so'm</div>
+      <div class="p-note">Material + o'rnatish ishlari</div>
+    </div>
+
+    <div class="section-card">
+      <h3>Xarajatlar taqsimoti</h3>
+      <div class="r-row"><span class="r-key">Qozon (${boilerKw} kVt)</span><span class="r-val">${f(priceBoiler)} so'm</span></div>
+      <div class="r-row"><span class="r-key">Batareyalar (${totalSecs} seks.)</span><span class="r-val">${f(priceRad)} so'm</span></div>
+      <div class="r-row"><span class="r-key">Quvurlar va fitinglar</span><span class="r-val">${f(pricePipe)} so'm</span></div>
+      <div class="r-row"><span class="r-key">O'rnatish ishlari</span><span class="r-val">${f(priceWork)} so'm</span></div>
+    </div>
+
+    <div class="warn-box">
+      ⚠️ Bu taxminiy hisob — SNiP normalariga asoslangan. Aniq narx uchun mutaxassis bilan bog'laning. Narxlar 2025-yil bozor ma'lumotlari.
+    </div>
+
+    <button class="btn-share" onclick="shareResult(${f(totalPrice).replace(/\s/g,'')},${boilerKw},${totalSecs})">
+      📤 Natijani ulashish
+    </button>
+    <button class="btn-restart" onclick="restart()">🔄 Qaytadan hisoblash</button>
+  `;
+
+  if(tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+}
+
+function shareResult(price, boiler, secs) {
+  const text = `🔧 SabbFlow — Atopleniya hisob-kitobi\n\n🏠 Uyim uchun natija:\n• Qozon: ${boiler} kVt\n• Batareya: ${secs} ta seksiya\n• Taxminiy narx: ${Math.round(price).toLocaleString()} so'm\n\n@SabbFlowBot da hisoblang!`;
+  if(tg?.shareMessage) {
+    tg.shareMessage({ message: text });
+  } else if(navigator.share) {
+    navigator.share({ text });
+  } else {
+    navigator.clipboard?.writeText(text);
+    toast('Matn nusxalandi!');
+  }
+}
+
+function restart() {
+  S.region=''; S.wall=''; S.floors=''; S.window=''; S.rooms=[]; rid=0;
+  document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+  document.getElementById('step1').classList.add('active');
+  document.querySelectorAll('.opt-btn').forEach(b=>b.classList.remove('selected'));
+  updateProg(1);
+  window.scrollTo({top:0});
+}
+
+function toast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+  if(tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+}
+</script>
+</body>
+</html>
